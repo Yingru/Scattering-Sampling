@@ -18,55 +18,30 @@ int main()
     double E1, temp, s;
 
     temp = 0.4;
-    s = 5.0;
-
- 
-//    A.Sigma_Qq(s, temp);
-
-//    A.Sigma_Qq_tabulate();
-
-    temp = 0.4;
-    for (int is=0; is < 40; ++is)
-    {
-	s = 1 + exp(is*0.2);
-	cout << s << " " << A.Sigma_Qq(s, temp) << endl;
-    }
-
+    s = 15.0;
+    E1 = 15.;
+// okay, let us test the result of sampling p3
+    Sample_2to3 B(A,E1, temp);
+    for (int i=0; i< 10000; i++)
+        B.Sample_p3_Qq(A, s, temp);
 
 /*
-    for (int iE = 0; iE < 40; ++iE)
-    {
-        E1 = 2.69 + iE;
-        cout << E1 << " " << A.Gamma_Qq(E1, temp) << endl;
-    }
-*/
-
-//    Scattering_2to2 A(1.3, 0.2);
-// now I remembered, in this construction, before you really start to calculate Gamma_rate, you need to tabulate Qq and Qg... 
-// later will put that in the constructor??
-
-/*
+    Scattering_2to2 A(1.3, 0.2);
     A.Sigma_Qq_tabulate();
-    A.Sigma_Qg_tabulate();
     A.Gamma_Qq_tabulate();
+
+    A.Sigma_Qg_tabulate();
     A.Gamma_Qg_tabulate();
 
     double temp = 0.4;
-    double E1 = 5.0;
-
-    for (int i=0; i<25; i++)
-    {
-        E1 = 2.0*(i+1);
-        cout << A.Gamma_Qq(E1, temp) << " " << A.Get_gamma_Qq(E1, temp) << " " << A.Gamma_Qg(E1, temp) << " " << A.Get_gamma_Qg(E1, temp) << endl;
-    }
-*/
-//    cout << A.Gamma_Qq(E1, temp) <<" " << A.Get_gamma_Qq(E1, temp) << endl;
-//    cout << A.Gamma_Qg(E1, temp) << " " << A.Get_gamma_Qg(E1, temp) << endl;
- 
-/*
-   for (int i=0; i<10000; i++)   
+    double E1 = 15.;
     Sample_2to2 B(A, E1, temp);
+ 
+ 
 */
+
+
+ 
     return 0;
 }
 

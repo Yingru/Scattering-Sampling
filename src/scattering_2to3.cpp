@@ -1,4 +1,5 @@
 #include "scattering.h"
+#include <fstream>
 
 using namespace std;
 
@@ -80,6 +81,17 @@ double* Rotate(double theta, double phi, double *p)
 
 
 
+
+double Scattering_2to3::M2_Qq_2to2(double t, double s, double temp)
+{
+    double u = 2*Mass2_ - s - t;
+    double alpha_t = Alpha(t);
+    double m_D2 = DebyeMass2(alpha_t, temp);
+    double result = 70.184*alpha_t*alpha_t * (pow(Mass2_ - u, 2) + pow(s-Mass2_, 2) + 2.*Mass2_*t)/ pow(t-kfactor_ *m_D2, 2);
+    return result;
+}
+
+
 double Scattering_2to3::M2_Qq(double *k, double s, double temp)
 {
     double p40 = k[0];
@@ -103,38 +115,42 @@ double Scattering_2to3::M2_Qq(double *k, double s, double temp)
 	double qx = -vec_p4[0];
 	double qy = -vec_p4[1];
 
-	double y = 0.5*log((k0+kz)/(k0-kz));
-
-        
-	double kperp2 = kx*kx + ky*ky;
+        double kperp2 = kx*kx + ky*ky;
 	double qperp2 = qx*qx + qy*qy;
 
-        double phi_kq = (kx*qx + ky*qy)/(sqrt(kperp2) * sqrt(qperp2));
-        
+// try to speed up:real	13m54.817s
+	double expy = sqrt((k0+kz)/(k0-kz));
+	double exp_absy = kz > 0 ? expy : 1./expy;
+	double x_bar = sqrt(kperp2) * exp_absy / sqrt(s);
+	double x = sqrt(kperp2) * expy / sqrt(s);
 
-	double x_bar = sqrt(kperp2) * exp(fabs(y)) / sqrt(s);
-	double x = sqrt(kperp2) * exp(y) / sqrt(s);
+
+// this way, to tabulate sigma_Qq:real       14m52.072s
+	//double y = 0.5*log((k0+kz)/(k0-kz));
+        //double phi_kq = (kx*qx + ky*qy)/(sqrt(kperp2) * sqrt(qperp2));
+	//double x_bar = sqrt(kperp2) * exp(fabs(y)) / sqrt(s);
+	//double x = sqrt(kperp2) * exp(y) / sqrt(s);
 
 	double df_qk[] = {qx-kx, qy-ky};
 	double qtkt = qperp2 + kperp2 - 2*(kx*qx + ky*qy);
 	double t_prime = -qperp2/(s-Mass2_)*(qtkt/(1-x) + kperp2/x + x/(1-x)*Mass2_) - qperp2;
 	double u = (1-qperp2/(s-Mass2_))*(2*Mass2_-s+qtkt/(1-x) + kperp2/x + x/(1-x)*Mass2_) - qperp2;
-	double alpha_t = Alpha(t_prime);
-	double m_D2 = DebyeMass2(alpha_t, temp);
+        double alpha_t = Alpha(t_prime);
+        double alpha_k = 0.3;
+	double m_D2 = DebyeMass2(alpha_k, temp);
 	double a = kperp2 + x*x*Mass2_ + m_D2;
 	double b = pow(df_qk[0], 2) + pow(df_qk[1],2) + x*x*Mass2_ + m_D2;
 	double PD = pow(kx/a + df_qk[0]/b,2) + pow(ky/a + df_qk[1]/b,2);
-
-	double M2to2 = 64./9.*M_PI*M_PI*alpha_t*alpha_t*(pow(Mass2_-u,2) + pow(s-Mass2_, 2) + 2*Mass2_*t_prime) / pow(t_prime - kfactor_*m_D2, 2);
-	double alpha_s = 0.3;
-	double M2_ = 12.*4.*M_PI*alpha_s*M2to2*pow(1-x_bar, 2)*PD;
+        double M2to2 = M2_Qq_2to2(t_prime, s, temp);
+	//double M2to2 = 64./9.*M_PI*M_PI*alpha_t*alpha_t*(pow(Mass2_-u,2) + pow(s-Mass2_, 2) + 2*Mass2_*t_prime) / pow(t_prime - kfactor_*m_D2, 2);
+	double M2_ = 12.*4.*M_PI*alpha_k*M2to2*pow(1-x_bar, 2)*PD;
 
         //cout << k[0] << " " << k[1] << " " << k[2] << " " << k[3] << " " << qperp2 << " " << kperp2 << " " << y << " " << phi_kq << " " << M2_ << endl;
 //	cout << qperp2 << " " << kperp2 << " " << y << " "<< phi_kq << endl;
 //	cout << t_prime << " " << u << endl;
 //	cout << qtkt << " " << x << endl;
 //	cout << M2to2 << " " << M2_ << endl;
-
+//        cout << k[0] << " " << k[1] << " " << k[2] << " " << k[3] << " " << PD << " " << pow(1-x_bar,2) << " "<< x_bar << " " << kperp2  << endl;
 	double result =M2_ * sin(theta4);
 	return result;
     }
@@ -213,6 +229,21 @@ double Scattering_2to3::Sigma_Qq(double s, double temp)
 }
 
 
+/*
+void Scattering_2to2::Sigma_Qq_readin()
+{
+    ifstream  file("Data_sigma_Qq_2to2.dat");
+    double s, temp;
+    if (file.is_open())
+    {
+        for(int is=0; is < Ns_MAX_; ++is)
+	{
+	    for (int iT=0; iT<NT_MAX_; ++iT)
+		file >> s >> temp >> sigma_Qq_[is][iT]; 
+	}
+    }
+}
+*/
 
 //for most of the case, we are calculation s in a smaller range (do you want to make a histgram 
 //about the distribution of s??) and in that way, it really a waste of 
@@ -229,7 +260,7 @@ void Scattering_2to3::Sigma_Qq_tabulate()
 	{
 	    temp = T0_ + iT*dT_;
 	    sigma_Qq_[is][iT] = Sigma_Qq(s, temp);
-//            cout << is << "   " << s << "    "  << temp <<  "   " << sigma_Qq_[is][iT] << endl;
+            //cout << is << "   " << s << "    "  << temp <<  "   " << sigma_Qq_[is][iT] << endl;
          }
     
     }
@@ -432,6 +463,25 @@ double Scattering_2to2::Get_gamma_Qq(double E1, double temp)
 
 
 //------------------------------ Qg-> Qgg -----------------------------------
+double Scattering_2to3::M2_Qg_2to2(double t, double u, double s, double temp)
+{
+	double alpha_t = Alpha(t);
+	double m_D2t = DebyeMass2(alpha_t, temp);
+	double alpha_s = Alpha(s-Mass2_);
+	double m_D2s = DebyeMass2(alpha_s, temp);
+	double alpha_u = Alpha(u-Mass2_);
+	double m_D2u = DebyeMass2(alpha_u, temp);
+        double X1 = pow(alpha_t, 2) *2.*(s-Mass2_)*(Mass2_-u)/pow(t - kfactor_*m_D2t,2);
+	double X2 = pow(alpha_s, 2) *4./9. *((s-Mass2_)*(Mass2_-u) + 2.*Mass2_*(s+Mass2_))/pow(s-Mass2_+m_D2s, 2);
+	double X3 = pow(alpha_u, 2) *4./9. *((s-Mass2_)*(Mass2_-u) + 2.*Mass2_*(u+Mass2_))/pow(Mass2_-u+m_D2u, 2);
+	double X4 = alpha_s*alpha_u*1./9.*Mass2_*(4*Mass2_-t)/((s-Mass2_+m_D2s)*(Mass2_-u+m_D2u));
+	double X5 = alpha_t*alpha_s *((s-Mass2_)*(Mass2_-u) + Mass2_*(s-u))/((t-kfactor_*m_D2t)*(s-Mass2_+m_D2s));
+	double X6 = alpha_t*alpha_s*((s-Mass2_)*(Mass2_-u) - Mass2_*(s-u))/((t-kfactor_*m_D2t)*(Mass2_-u+m_D2u));
+	double result = pow(4.*M_PI,2) *(X1+X2+X3+X4+X5-X6);
+        return result;
+}
+
+
 
 double Scattering_2to3::M2_Qg(double *k, double s, double temp)
 {
@@ -467,27 +517,17 @@ double Scattering_2to3::M2_Qg(double *k, double s, double temp)
 	double qtkt = qperp2 + kperp2 - 2*(kx*qx + ky*qy);
 	double t_prime = -qperp2/(s-Mass2_)*(qtkt/(1-x) + kperp2/x + x/(1-x)*Mass2_) - qperp2;
 	double u = (1-qperp2/(s-Mass2_))*(2*Mass2_-s+qtkt/(1-x) + kperp2/x + x/(1-x)*Mass2_) - qperp2;
-	double alpha_t = Alpha(t_prime);
-	double m_D2t = DebyeMass2(alpha_t, temp);
-	double alpha_s = Alpha(s-Mass2_);
-	double m_D2s = DebyeMass2(alpha_s, temp);
-	double alpha_u = Alpha(u-Mass2_);
-	double m_D2u = DebyeMass2(alpha_u, temp);
+        double M2to2 = M2_Qg_2to2(t_prime, u, s, temp);
 
-
-	double a = kperp2 + x*x*Mass2_ + m_D2t;
-	double b = pow(df_qk[0], 2) + pow(df_qk[1],2) + x*x*Mass2_ + m_D2t;
+        double alpha_k = 0.3;
+        double m_D2 = DebyeMass2(alpha_k, temp);
+	double a = kperp2 + x*x*Mass2_ + m_D2;
+	double b = pow(df_qk[0], 2) + pow(df_qk[1],2) + x*x*Mass2_ + m_D2;
 	double PD = pow(kx/a + df_qk[0]/b,2) + pow(ky/a + df_qk[1]/b,2);
 
-        double X1 = pow(alpha_t, 2) *2.*(s-Mass2_)*(Mass2_-u)/pow(t_prime - kfactor_*m_D2t,2);
-	double X2 = pow(alpha_s, 2) *4./9. *((s-Mass2_)*(Mass2_-u) + 2.*Mass2_*(s+Mass2_))/pow(s-Mass2_+m_D2s, 2);
-	double X3 = pow(alpha_u, 2) *4./9. *((s-Mass2_)*(Mass2_-u) + 2.*Mass2_*(u+Mass2_))/pow(Mass2_-u+m_D2u, 2);
-	double X4 = alpha_s*alpha_u*1./9.*Mass2_*(4*Mass2_-t_prime)/((s-Mass2_+m_D2s)*(Mass2_-u+m_D2u));
-	double X5 = alpha_t*alpha_s *((s-Mass2_)*(Mass2_-u) + Mass2_*(s-u))/((t_prime-kfactor_*m_D2t)*(s-Mass2_+m_D2s));
-	double X6 = alpha_t*alpha_s*((s-Mass2_)*(Mass2_-u) - Mass2_*(s-u))/((t_prime-kfactor_*m_D2t)*(Mass2_-u+m_D2u));
-	double M2to2 = pow(4.*M_PI,2) *(X1+X2+X3+X4+X5-X6);
 
-	double alpha_k = 0.3;
+
+
 	double M2_ = 12.*4.*M_PI*alpha_k*M2to2*pow(1-x_bar, 2)*PD;
 
 

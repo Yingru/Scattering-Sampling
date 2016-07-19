@@ -65,7 +65,7 @@ struct gsl_params2to2
 class Scattering_2to3
 {
 private:
-    double kfactor_;
+//    double kfactor_;
     double Lambda2 = 0.04;
     double s0_, T0_, E10_,  dT_, ds_, dE1_;
     int  NT_MAX_, Ns_MAX_, NE_MAX_;
@@ -73,6 +73,7 @@ private:
     double DebyeMass2(double alpha_s, double temp);
 
 public:
+    double kfactor_;
     Scattering_2to3(double M, double kfactor);
     ~Scattering_2to3() {};
     double Mass2_;
@@ -82,6 +83,7 @@ public:
     int ValidParams(double *k, double s);
     double Jacobi_Qq(double *k, double s);
 
+    double M2_Qq_2to2(double t, double s, double temp);
     double M2_Qq(double *k, double s, double temp);
     double Sigma_Qq(double s, double temp);
     void Sigma_Qq_tabulate();
@@ -91,6 +93,8 @@ public:
     void Gamma_Qq_tabulate();
     double Get_gamma_Qq(double E1, double temp);
 
+
+    double M2_Qg_2to2(double t, double u, double s, double temp);
     double M2_Qg(double *k, double s, double temp);
     double Sigma_Qg(double s, double temp);
     void Sigma_Qg_tabulate();

@@ -4,6 +4,7 @@ add_library(${LIBRARY_NAME} STATIC
   scattering_2to2.cpp
   scattering_2to3.cpp
   sample_2to2.cpp
+  sample_2to3.cpp
 )
 
 set_target_properties(${LIBRARY_NAME} PROPERTIES PREFIX "")

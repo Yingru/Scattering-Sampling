@@ -34,6 +34,28 @@ Sample_2to2::Sample_2to2(Scattering_2to2& A, double E1, double temp)
 }
 
 
+
+
+
+double* Sample_2to2::Sample_vector_CoM(Scattering_2to2& A, double s, double t)
+{
+    double p40 = (s - A.Mass2_) / (2.*sqrt(s));
+    double cos_theta4 = - t/(2*p40*p40) - 1;
+    double sin_theta4 = sqrt(1 - cos_theta4*cos_theta4);
+    double phi4 = 2.*M_PI*((double) rand()/RAND_MAX);
+    double p4x = p40 * sin_theta4 * cos(phi4);
+    double p4y = p40 * sin_theta4 * sin(phi4);
+    double p4z = p40 * cos_theta4;
+
+    double p30_ = sqrt(p40*p40 + A.Mass2_);
+    double p3x_ = -p4x;
+    double p3y_ = -p4y;
+    double p3z_ = -p4z;
+
+    double p3[] = {p30_, p3x_, p3y_, p3z_};
+    return p3;
+}
+
     
 
 
@@ -230,6 +252,8 @@ int Sample_2to2::Sample_t_Qq(Scattering_2to2& A, double s, double temp)
 
     t_ = t;
     //cout << count << " " << ctl << " " << s_ < " " << t_ << endl;
+
+
 
     return ctl;
 }
